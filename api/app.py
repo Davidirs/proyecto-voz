@@ -230,11 +230,11 @@ app.add_url_rule(
 # 4. FUNCIÓN PARA PRUEBAS LOCALES
 # ------------------------------------------------------------------------------
 
-def run_local():
+#def run_local():
     """Función auxiliar para ejecutar la aplicación localmente."""
-    print("Iniciando Flask en modo local...")
+    #print("Iniciando Flask en modo local...")
     # debug=True es ideal para desarrollo local
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    #app.run(host='0.0.0.0', port=5000, debug=True)
 
 # ------------------------------------------------------------------------------
 # 5. PUNTO DE ENTRADA (SOLO PARA PRUEBAS LOCALES)
