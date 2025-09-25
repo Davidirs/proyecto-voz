@@ -3,6 +3,7 @@ class AsistenteVozFormulario {
         this.recognition = null;
         this.isRecording = false;
         this.currentData = null;
+        this.API_URL = 'http://localhost:5000/extract'; // <--- URL de tu API REST
         this.initializeElements();
         this.initializeSpeechRecognition();
         this.setupEventListeners();
@@ -69,9 +70,51 @@ class AsistenteVozFormulario {
         Object.keys(this.getValidationRules()).forEach(field => {
             const input = document.getElementById(field);
             if (input) {
-                input.addEventListener('blur', () => this.validateField(field));
+                // Al salir de un campo, validamos y actualizamos currentData
+                input.addEventListener('blur', () => {
+                    this.validateField(field);
+                    this.updateCurrentDataFromForm();
+                });
             }
         });
+    }
+
+    // NUEVA FUNCIÓN: Actualiza currentData con los valores actuales del formulario
+    updateCurrentDataFromForm() {
+        const fields = this.getFieldsToExtract();
+        const updatedData = {};
+        let allValid = true;
+
+        fields.forEach(field => {
+            const input = document.getElementById(field);
+            if (input) {
+                // Validación estricta para números/precios
+                if (input.type === 'number') {
+                    updatedData[field] = parseFloat(input.value) || null;
+                } else {
+                    updatedData[field] = input.value.trim() || null;
+                }
+                
+                // Si la validación del campo falla, marcamos el formulario como no válido
+                if (!this.validateField(field)) {
+                    allValid = false;
+                }
+            }
+        });
+        
+        this.currentData = updatedData;
+
+        // Si estamos en corrección manual, actualiza el estado del botón Confirmar
+        if (!this.elements.correctBtn.disabled) {
+            this.elements.confirmBtn.disabled = !allValid;
+        }
+
+        return allValid;
+    }
+
+    // Define los campos que siempre intentaremos extraer
+    getFieldsToExtract() {
+        return ['nombre', 'categoria', 'cantidad', 'precio_compra', 'precio_venta'];
     }
 
     async startRecording() {
@@ -104,7 +147,10 @@ class AsistenteVozFormulario {
         this.addLog(`Texto reconocido: "${bestMatch.transcript}" (${(bestMatch.confidence * 100).toFixed(1)}% confianza)`, 'info');
 
         try {
+            // Llama a la API de Python para la extracción
             const processedData = await this.procesarConIA(bestMatch.transcript);
+            
+            // La validación en el cliente es clave
             if (this.validarDatos(processedData)) {
                 this.currentData = processedData;
                 this.llenarFormulario(processedData);
@@ -112,10 +158,16 @@ class AsistenteVozFormulario {
                 this.enableActionButtons(true);
                 this.addLog('Datos procesados y validados correctamente', 'success');
             } else {
-                throw new Error('Datos insuficientes o inválidos');
+                // Si la data no es válida, permitimos corrección manual
+                this.currentData = processedData;
+                this.llenarFormulario(processedData);
+                this.updateStatus('Advertencia: Datos incompletos o inválidos. Corrija manualmente.', 'warning');
+                this.enableActionButtons(true); // Permitir corrección
+                this.addLog('Datos incompletos/inválidos. Habilitando corrección manual.', 'warning');
+                this.elements.confirmBtn.disabled = true; // Deshabilitar confirmación automática si es inválido
             }
         } catch (error) {
-            this.addLog(`Error en procesamiento: ${error.message}`, 'error');
+            this.addLog(`Error en la API de procesamiento: ${error.message}`, 'error');
             this.handleError(error);
         }
     }
@@ -136,54 +188,103 @@ class AsistenteVozFormulario {
         this.elements.startBtn.innerHTML = '🎤 Reintentar';
     }
 
+    // ----------------------------------------------------------------------------------
+    // FUNCIÓN CRÍTICA: Llama a tu API de Python
+    // ----------------------------------------------------------------------------------
+    async procesarConIA(texto) {
+        this.addLog(`Enviando a API REST (${this.API_URL})...`, 'info');
+        
+        // La lista de campos a extraer que tu API de Python espera
+        const fieldsToExtract = this.getFieldsToExtract(); 
+
+        try {
+            const response = await fetch(this.API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: texto,
+                    fields: fieldsToExtract 
+                })
+            });
+
+            if (!response.ok) {
+                // Manejar errores HTTP (400, 500, etc.)
+                const errorBody = await response.json();
+                throw new Error(errorBody.error || `Error HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.success) {
+                // Retorna los datos extraídos por la API de Python
+                return result.data;
+            } else {
+                throw new Error(result.error || 'La API devolvió un resultado no exitoso.');
+            }
+
+        } catch (error) {
+            this.addLog(`Fallo al conectar o procesar con la API: ${error.message}`, 'error');
+            // Retorna un objeto vacío en caso de error para no detener la aplicación
+            return {}; 
+        }
+    }
+    // ----------------------------------------------------------------------------------
+
     getValidationRules() {
         return {
             nombre: { required: true, type: 'string', minLength: 2 },
-            categoria: { required: true, type: 'string', minLength: 2 },
+            categoria: { required: false, type: 'string', minLength: 2 }, // La categoría no siempre es requerida al dictar
             cantidad: { required: true, type: 'number', min: 1 },
             precio_compra: { required: true, type: 'number', min: 0 },
             precio_venta: { required: true, type: 'number', min: 0 }
         };
     }
 
+    // Mantiene la validación del backend pero usa la data ya parseada
     validarDatos(data) {
         const rules = this.getValidationRules();
         let isValid = true;
 
         for (const [field, rule] of Object.entries(rules)) {
-            if (rule.required && (!data[field] || data[field].toString().trim() === '')) {
+            const value = data[field];
+            
+            // 1. Requerido
+            if (rule.required && (!value || value.toString().trim() === '' || value === 'null')) {
+                // Un valor "null" de la API cuenta como inválido para campos requeridos
                 this.addLog(`Campo requerido faltante: ${field}`, 'warning');
                 isValid = false;
                 continue;
             }
 
-            if (data[field]) {
+            // 2. Tipo y Mínimo
+            if (value && value.toString().trim() !== '') {
                 if (rule.type === 'number') {
-                    const value = parseFloat(data[field]);
-                    if (isNaN(value) || (rule.min !== undefined && value < rule.min)) {
-                        this.addLog(`Valor inválido para ${field}: ${data[field]}`, 'warning');
+                    const numValue = parseFloat(value);
+                    if (isNaN(numValue) || (rule.min !== undefined && numValue < rule.min)) {
+                        this.addLog(`Valor inválido o fuera de rango para ${field}: ${value}`, 'warning');
                         isValid = false;
                     }
-                } else if (rule.type === 'string' && rule.minLength && data[field].length < rule.minLength) {
-                    this.addLog(`${field} demasiado corto: ${data[field]}`, 'warning');
+                } else if (rule.type === 'string' && rule.minLength && value.length < rule.minLength) {
+                    this.addLog(`${field} demasiado corto: ${value}`, 'warning');
                     isValid = false;
                 }
             }
         }
-
-        // Validación adicional: precio venta > precio compra
+        
+        // 3. Validación de Negocio: precio venta > precio compra
         if (data.precio_venta && data.precio_compra) {
             const precioVenta = parseFloat(data.precio_venta);
             const precioCompra = parseFloat(data.precio_compra);
             
-            if (precioVenta <= precioCompra) {
+            if (precioVenta <= precioCompra && precioVenta > 0) { // Permitimos 0 si es solo advertencia
                 this.addLog('Advertencia: Precio de venta debería ser mayor al de compra', 'warning');
-                // No marcamos como inválido, solo advertimos
             }
         }
 
         return isValid;
     }
+    
+    // ... (El resto de funciones se mantienen iguales o con pequeños ajustes para la robustez) ...
 
     validateField(fieldName) {
         const input = document.getElementById(fieldName);
@@ -222,47 +323,36 @@ class AsistenteVozFormulario {
         }
 
         errorElement.textContent = errorMessage;
+
+        // Validación de negocio solo al final, si ambos campos son válidos
+        if (fieldName === 'precio_venta' || fieldName === 'precio_compra') {
+            const pv = parseFloat(document.getElementById('precio_venta').value);
+            const pc = parseFloat(document.getElementById('precio_compra').value);
+            
+            if (!isNaN(pv) && !isNaN(pc) && pv <= pc && pv > 0) {
+                 // Si la venta es menor o igual a la compra, es un error de negocio (no fatal)
+                 if (fieldName === 'precio_venta') {
+                     errorElement.textContent = 'Advertencia: Venta menor o igual a compra.';
+                     input.classList.add('error');
+                 }
+            }
+        }
+        
         return isValid;
     }
-
-    async procesarConIA(texto) {
-        // Simulación de procesamiento con IA - Reemplaza con tu API real
-        this.addLog('Procesando texto con IA...', 'info');
-        
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                // Expresiones regulares mejoradas para extracción
-                const patterns = {
-                    nombre: /(?:producto|nombre|articulo)[\s:]*([^,.\d]+?)(?=,|\.|$|cantidad|categoría|precio)/i,
-                    categoria: /(?:categor[ií]a|tipo)[\s:]*([^,.\d]+?)(?=,|\.|$|cantidad|precio)/i,
-                    cantidad: /(?:cantidad|unidades)[\s:]*(\d+)/i,
-                    precio_compra: /(?:precio de compra|compra|costo)[\s:]*\$?(\d+(?:\.\d{1,2})?)/i,
-                    precio_venta: /(?:precio de venta|venta)[\s:]*\$?(\d+(?:\.\d{1,2})?)/i
-                };
-
-                const resultado = {};
-                for (const [key, pattern] of Object.entries(patterns)) {
-                    const match = texto.match(pattern);
-                    resultado[key] = match ? match[1].trim() : '';
-                }
-
-                // Fallback: buscar números para cantidades y precios si no se encontraron con patrones específicos
-                if (!resultado.cantidad) {
-                    const cantMatch = texto.match(/(\d+)(?=\s*(?:unidades|piezas|pzas))/i);
-                    resultado.cantidad = cantMatch ? cantMatch[1] : '';
-                }
-
-                this.addLog(`Datos extraídos: ${JSON.stringify(resultado)}`, 'info');
-                resolve(resultado);
-            }, 1000);
-        });
-    }
-
+    
     llenarFormulario(data) {
         Object.keys(data).forEach(key => {
             const element = document.getElementById(key);
             if (element) {
-                element.value = data[key] || '';
+                // Limpiamos $ y , para que los inputs tipo number los acepten
+                let value = data[key] || '';
+                if (typeof value === 'string') {
+                    value = value.replace('$', '').replace(',', '').trim();
+                }
+
+                // Si el valor es "null" o una cadena vacía, no llenamos
+                element.value = (value === 'null' || value === '') ? '' : value;
                 this.validateField(key); // Validar inmediatamente después de llenar
             }
         });
@@ -280,6 +370,7 @@ class AsistenteVozFormulario {
         });
         this.enableActionButtons(false);
         this.hideConfirmationPanel();
+        this.currentData = null; // Limpiar la data actual
     }
 
     enableActionButtons(enabled) {
@@ -288,14 +379,21 @@ class AsistenteVozFormulario {
     }
 
     showConfirmation() {
-        if (!this.currentData) return;
+        // Obtenemos la data FINAL (ya sea extraída o corregida manualmente)
+        const finalData = this.currentData || {};
+
+        if (!this.validarDatos(finalData)) {
+            this.addLog('Error: No se puede mostrar confirmación. Hay datos inválidos/faltantes.', 'error');
+            this.updateStatus('Corrija los datos antes de confirmar', 'error');
+            return;
+        }
 
         const confirmationHTML = `
-            <div class="confirmation-data-item"><strong>Producto:</strong> ${this.currentData.nombre || 'No especificado'}</div>
-            <div class="confirmation-data-item"><strong>Categoría:</strong> ${this.currentData.categoria || 'No especificado'}</div>
-            <div class="confirmation-data-item"><strong>Cantidad:</strong> ${this.currentData.cantidad || 'No especificado'}</div>
-            <div class="confirmation-data-item"><strong>Precio Compra:</strong> $${this.currentData.precio_compra || 'No especificado'}</div>
-            <div class="confirmation-data-item"><strong>Precio Venta:</strong> $${this.currentData.precio_venta || 'No especificado'}</div>
+            <div class="confirmation-data-item"><strong>Producto:</strong> ${finalData.nombre || 'No especificado'}</div>
+            <div class="confirmation-data-item"><strong>Categoría:</strong> ${finalData.categoria || 'No especificado'}</div>
+            <div class="confirmation-data-item"><strong>Cantidad:</strong> ${finalData.cantidad || 'No especificado'}</div>
+            <div class="confirmation-data-item"><strong>Precio Compra:</strong> $${parseFloat(finalData.precio_compra || 0).toFixed(2)}</div>
+            <div class="confirmation-data-item"><strong>Precio Venta:</strong> $${parseFloat(finalData.precio_venta || 0).toFixed(2)}</div>
         `;
 
         this.elements.confirmationData.innerHTML = confirmationHTML;
@@ -308,10 +406,8 @@ class AsistenteVozFormulario {
     }
 
     confirmAndSave() {
-        if (!this.currentData) return;
-
-        // Validar nuevamente antes de guardar
-        if (!this.validarDatos(this.currentData)) {
+        // Asegurarse de usar la data más actual del formulario
+        if (!this.updateCurrentDataFromForm()) {
             this.addLog('Error: Datos inválidos no pueden ser guardados', 'error');
             alert('Por favor, corrige los errores antes de guardar.');
             return;
@@ -320,13 +416,13 @@ class AsistenteVozFormulario {
         // Simular guardado en base de datos
         this.addLog('Guardando datos en la base de datos...', 'info');
         
+        // Aquí iría tu lógica real de guardado (ej. fetch a un endpoint /save)
         setTimeout(() => {
             this.addLog('✅ Producto guardado exitosamente', 'success');
             this.updateStatus('Producto guardado correctamente', 'success');
             this.hideConfirmationPanel();
             this.clearForm();
             
-            // Aquí iría tu lógica real de guardado
             console.log('Datos guardados:', this.currentData);
         }, 1000);
     }
@@ -341,18 +437,23 @@ class AsistenteVozFormulario {
         this.hideConfirmationPanel();
         
         // Habilitar todos los campos para edición
-        const fields = ['nombre', 'categoria', 'cantidad', 'precio_compra', 'precio_venta'];
+        const fields = this.getFieldsToExtract();
         fields.forEach(field => {
             const element = document.getElementById(field);
             if (element) {
                 element.disabled = false;
-                element.focus();
+                // Al entrar en modo corrección, asegurarse de que la data actual sea la del form
+                this.updateCurrentDataFromForm();
             }
         });
 
+        // Asegurarse de que el botón de Confirmar refleje el estado de validación del formulario
+        this.elements.confirmBtn.disabled = !this.updateCurrentDataFromForm(); 
         this.addLog('Corrección manual habilitada', 'info');
         this.updateStatus('Modo corrección manual activado', 'processing');
     }
+    
+    // ... (updateStatus, addLog, handleError se mantienen iguales) ...
 
     updateStatus(message, type = '') {
         this.elements.status.textContent = message;
@@ -375,7 +476,6 @@ class AsistenteVozFormulario {
         this.addLog(`Error: ${error.message}`, 'error');
         this.updateStatus('Error en el sistema', 'error');
         
-        // Rehabilitar botón de grabación para reintento
         this.elements.startBtn.disabled = false;
         this.elements.startBtn.innerHTML = '🎤 Reintentar';
     }

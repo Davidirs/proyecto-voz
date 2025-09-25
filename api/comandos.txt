@@ -1,0 +1,11 @@
+comandos.txt
+# =============================================================================
+# Comandos de instalación y ejecución
+# =============================================================================
+
+# Instalación con pip
+pip install -r requirements.txt
+
+# Ejecución directa
+python app.py
+

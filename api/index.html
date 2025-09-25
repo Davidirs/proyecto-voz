@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API de Extracción de Texto: Pruebas Frontend</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .container { display: flex; gap: 30px; }
+        .form-section { flex: 1; padding: 20px; border: 1px solid #ccc; border-radius: 8px; background-color: #fff; }
+        h2 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 5px; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        textarea, input[type="text"] { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px; }
+        button:hover { background-color: #0056b3; }
+        pre { background-color: #eee; padding: 15px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; }
+        .error { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>API de Extracción de Texto: Pruebas Frontend</h1>
+
+    <div class="container">
+        
+        <div class="form-section">
+            <h2>1. Prueba de API REST (`/extract`)</h2>
+            <form id="restForm">
+                <label for="rest_text">Texto a Analizar:</label>
+                <textarea id="rest_text" rows="4" placeholder="Ej: producto es un teclado, cantidad 5, precio de venta 12.50">El producto 'Borrador Blanco'. Cantidad: 15 unidades. El precio de venta es $0.75.</textarea>
+                
+                <label for="rest_fields">Campos Esperados (Lista simple separada por comas):</label>
+                <input type="text" id="rest_fields" value="nombre, cantidad, precio_venta" placeholder="Ej: nombre, cantidad, precio_venta">
+                
+                <button type="submit">Enviar Petición REST</button>
+            </form>
+            
+            <label>Resultado REST:</label>
+            <pre id="rest_result">{ /* Resultado aquí */ }</pre>
+        </div>
+
+        <div class="form-section">
+            <h2>2. Prueba con GraphQL (`/graphql`)</h2>
+            <form id="graphqlForm">
+                <label for="graphql_text">Texto a Analizar:</label>
+                <textarea id="graphql_text" rows="4" placeholder="Ej: Tengo 10 unidades de Mouse óptico. El costo de compra es $5.00 y el precio de venta es $12.50.">Tengo 10 unidades de Mouse óptico. El costo de compra es $5.00 y el precio de venta es $12.50.</textarea>
+
+                <label for="graphql_fields">Campos Esperados (JSON detallado):</label>
+                <textarea id="graphql_fields" rows="8">{
+    "fields": [
+        {"name": "nombre", "type": "string"},
+        {"name": "cantidad", "type": "number"},
+        {"name": "precio_compra", "type": "currency"},
+        {"name": "precio_venta", "type": "currency"}
+    ]
+}</textarea>
+                
+                <button type="submit">Enviar Petición GraphQL</button>
+            </form>
+            
+            <label>Resultado GraphQL:</label>
+            <pre id="graphql_result">{ /* Resultado aquí */ }</pre>
+        </div>
+    </div>
+
+    <script>
+        // ... (Tu script JavaScript se mantiene igual, ya que la lógica fetch es correcta)
+        const displayResult = (preElement, result) => {
+            if (result && result.error) {
+                preElement.className = 'error';
+                preElement.textContent = `ERROR: ${result.error}`;
+            } else {
+                preElement.className = '';
+                preElement.textContent = JSON.stringify(result, null, 2);
+            }
+        };
+
+        const extractInformation = async (text, fields) => {
+            try {
+                const response = await fetch('http://localhost:5000/extract', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text, fields: fields })
+                });
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    return result.data;
+                } else {
+                    return { error: result.error || `Error ${response.status}: ${response.statusText}` };
+                }
+            } catch (error) {
+                return { error: `Error de red: Failed to fetch (Verifica que la API en http://localhost:5000 esté corriendo)` };
+            }
+        };
+
+        const extractWithGraphQL = async (text, fields) => {
+            const query = `
+                mutation ExtractInfo($text: String!, $fields: [FieldInput!]!) {
+                    extractInformation(text: $text, fields: $fields) {
+                        success
+                        data
+                        extractedFields
+                        totalFields
+                        error
+                    }
+                }
+            `;
+            
+            try {
+                const response = await fetch('http://localhost:5000/graphql', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query, variables: { text: text, fields: fields } })
+                });
+                const result = await response.json();
+                
+                if (result.errors) {
+                    return { error: `Error en la mutación: ${result.errors[0].message}` };
+                }
+                
+                const extractionData = result.data.extractInformation;
+
+                if (extractionData.success) {
+                    return JSON.parse(extractionData.data); 
+                } else {
+                    return { error: extractionData.error || 'Error desconocido en GraphQL' };
+                }
+            } catch (error) {
+                return { error: `Error de red o parseo: Failed to fetch (Verifica que la API en http://localhost:5000 esté corriendo)` };
+            }
+        };
+
+
+        document.getElementById('restForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = document.getElementById('rest_text').value.trim();
+            const fieldsString = document.getElementById('rest_fields').value;
+            const fields = fieldsString.split(',').map(field => field.trim()).filter(field => field.length > 0);
+            const resultPre = document.getElementById('rest_result');
+
+            resultPre.className = '';
+            resultPre.textContent = 'Enviando petición...';
+
+            const result = await extractInformation(text, fields);
+            displayResult(resultPre, result);
+        });
+
+        document.getElementById('graphqlForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = document.getElementById('graphql_text').value.trim();
+            const fieldsJsonString = document.getElementById('graphql_fields').value;
+            const resultPre = document.getElementById('graphql_result');
+            let fields = [];
+
+            resultPre.className = '';
+            resultPre.textContent = 'Enviando petición...';
+
+            try {
+                const parsedJson = JSON.parse(fieldsJsonString);
+                fields = parsedJson.fields;
+            } catch (error) {
+                displayResult(resultPre, { error: `ERROR de JSON en Campos: Asegúrate de que el JSON de los campos sea válido. ${error.message}` });
+                return;
+            }
+
+            const result = await extractWithGraphQL(text, fields);
+            displayResult(resultPre, result);
+        });
+
+        window.onload = () => {
+             // Valores iniciales cargados en HTML
+        };
+    </script>
+    
+</body>
+</html>
