@@ -135,7 +135,13 @@ def rest_extract():
     if not request.is_json:
         return jsonify({"success": False, "error": "Content-Type debe ser 'application/json'"}), 400
 
-    data = request.get_json()
+    # MEJORA: Usa silent=True para evitar un 500 si el JSON es inválido o vacío.
+    data = request.get_json(silent=True) 
+    
+    if data is None:
+        # Respuesta clara si el JSON es inválido (aunque el Content-Type sea correcto)
+        return jsonify({"success": False, "error": "Petición JSON inválida o vacía. Asegúrate de que el formato JSON sea correcto."}), 400
+
     text = data.get('text')
     fields = data.get('fields')
 
@@ -151,9 +157,9 @@ def rest_extract():
             "extractedFields": sum(1 for v in extracted_data.values() if v is not None)
         }), 200
     except Exception as e:
-        # Registra el error interno en la consola del servidor
-        app.logger.error(f"Error en el procesamiento REST: {e}")
-        return jsonify({"success": False, "error": f"Error interno de procesamiento: {str(e)}"}), 500
+        # Registra el error interno para debugging en producción
+        app.logger.error(f"Error en el procesamiento REST: {e}") 
+        return jsonify({"success": False, "error": "Error interno de procesamiento en el servidor."}), 500
 
 
 # ------------------------------------------------------------------------------
@@ -221,11 +227,20 @@ app.add_url_rule(
 )
 
 # ------------------------------------------------------------------------------
-# 4. INICIO DE LA APLICACIÓN
+# 4. FUNCIÓN PARA PRUEBAS LOCALES
 # ------------------------------------------------------------------------------
 
-if __name__ == '__main__':
-    # Se recomienda usar host='0.0.0.0' para asegurar la accesibilidad si no usas localhost exacto
-    app.run(host='0.0.0.0', port=5000)
+def run_local():
+    """Función auxiliar para ejecutar la aplicación localmente."""
+    print("Iniciando Flask en modo local...")
+    # debug=True es ideal para desarrollo local
+    app.run(host='0.0.0.0', port=5000, debug=True)
 
+# ------------------------------------------------------------------------------
+# 5. PUNTO DE ENTRADA (SOLO PARA PRUEBAS LOCALES)
+# ------------------------------------------------------------------------------
 
+# CRÍTICO: Este bloque DEBE estar comentado en la versión subida a PythonAnywhere.
+# Úsalo solo cuando ejecutes el archivo directamente en tu computadora.
+# if __name__ == '__main__':
+#     run_local()
