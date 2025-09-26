@@ -3,50 +3,467 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API de Extracción de Texto: Pruebas Frontend</title>
+    <title>API de Extracción de Texto - Interfaz de Pruebas</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
-        .container { display: flex; gap: 30px; }
-        .form-section { flex: 1; padding: 20px; border: 1px solid #ccc; border-radius: 8px; background-color: #fff; }
-        h2 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 5px; }
-        label { display: block; margin-top: 10px; font-weight: bold; }
-        textarea, input[type="text"] { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px; }
-        button:hover { background-color: #0056b3; }
-        pre { background-color: #eee; padding: 15px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; }
-        .error { color: red; font-weight: bold; }
+        :root {
+            --primary-color: #3b82f6;
+            --primary-dark: #1e40af;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --warning-color: #f59e0b;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            line-height: 1.6;
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .api-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .api-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .card-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--primary-color);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.75rem;
+            color: white;
+            font-weight: 600;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            background: #fafafa;
+        }
+
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: white;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        .btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn.loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid transparent;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-section {
+            margin-top: 1.5rem;
+        }
+
+        .result-container {
+            background: #f8fafc;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .result-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .result-content {
+            padding: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .result-pre {
+            background: transparent;
+            border: none;
+            margin: 0;
+            padding: 0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: var(--text-primary);
+        }
+
+        .result-container.success {
+            border-color: var(--success-color);
+        }
+
+        .result-container.success .result-header {
+            background: var(--success-color);
+        }
+
+        .result-container.error {
+            border-color: var(--error-color);
+        }
+
+        .result-container.error .result-header {
+            background: var(--error-color);
+        }
+
+        .result-container.loading {
+            border-color: var(--warning-color);
+        }
+
+        .result-container.loading .result-header {
+            background: var(--warning-color);
+        }
+
+        .copy-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-indicator.loading {
+            background: var(--warning-color);
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-indicator.success {
+            background: var(--success-color);
+        }
+
+        .status-indicator.error {
+            background: var(--error-color);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .examples-section {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-top: 2rem;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .examples-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .examples-header h3 {
+            font-size: 1.25rem;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .examples-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .example-card {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .example-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: var(--shadow);
+        }
+
+        .example-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+
+        .example-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .example-fields {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .examples-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            background: var(--success-color);
+        }
+
+        .toast.error {
+            background: var(--error-color);
+        }
     </style>
 </head>
 <body>
 
-    <h1>API de Extracción de Texto: Pruebas Frontend</h1>
-
     <div class="container">
-        
-        <div class="form-section">
-            <h2>1. Prueba de API REST (`/extract`)</h2>
-            <form id="restForm">
-                <label for="rest_text">Texto a Analizar:</label>
-                <textarea id="rest_text" rows="4" placeholder="Ej: producto es un teclado, cantidad 5, precio de venta 12.50">El producto 'Borrador Blanco'. Cantidad: 15 unidades. El precio de venta es $0.75.</textarea>
-                
-                <label for="rest_fields">Campos Esperados (Lista simple separada por comas):</label>
-                <input type="text" id="rest_fields" value="nombre, cantidad, precio_venta" placeholder="Ej: nombre, cantidad, precio_venta">
-                
-                <button type="submit">Enviar Petición REST</button>
-            </form>
-            
-            <label>Resultado REST:</label>
-            <pre id="rest_result">{ /* Resultado aquí */ }</pre>
+        <div class="header">
+            <h1>API de Extracción de Texto</h1>
+            <p>Interfaz de pruebas interactiva para validar la funcionalidad de extracción de información mediante REST API y GraphQL</p>
         </div>
 
-        <div class="form-section">
-            <h2>2. Prueba con GraphQL (`/graphql`)</h2>
-            <form id="graphqlForm">
-                <label for="graphql_text">Texto a Analizar:</label>
-                <textarea id="graphql_text" rows="4" placeholder="Ej: Tengo 10 unidades de Mouse óptico. El costo de compra es $5.00 y el precio de venta es $12.50.">Tengo 10 unidades de Mouse óptico. El costo de compra es $5.00 y el precio de venta es $12.50.</textarea>
+        <div class="main-content">
+            <!-- REST API Section -->
+            <div class="api-card">
+                <div class="card-header">
+                    <div class="card-icon">REST</div>
+                    <div class="card-title">API REST - /extract</div>
+                </div>
+                
+                <form id="restForm">
+                    <div class="form-group">
+                        <label class="form-label" for="rest_text">Texto a Analizar</label>
+                        <textarea id="rest_text" class="form-textarea" rows="4" placeholder="Ingrese el texto del cual desea extraer información...">El producto 'Borrador Blanco'. Cantidad: 15 unidades. El precio de venta es $0.75.</textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="rest_fields">Campos Esperados</label>
+                        <input type="text" id="rest_fields" class="form-input" value="nombre, cantidad, precio_venta" placeholder="Separados por comas: nombre, cantidad, precio">
+                    </div>
+                    
+                    <button type="submit" class="btn" id="restBtn">
+                        <span class="btn-text">Ejecutar Extracción REST</span>
+                    </button>
+                </form>
+                
+                <div class="result-section">
+                    <div class="result-container" id="restResultContainer">
+                        <div class="result-header">
+                            <span><span class="status-indicator"></span>Resultado REST</span>
+                            <button class="copy-btn" onclick="copyResult('rest_result')">Copiar</button>
+                        </div>
+                        <div class="result-content">
+                            <pre class="result-pre" id="rest_result">Esperando petición...</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                <label for="graphql_fields">Campos Esperados (JSON detallado):</label>
-                <textarea id="graphql_fields" rows="8">{
+            <!-- GraphQL API Section -->
+            <div class="api-card">
+                <div class="card-header">
+                    <div class="card-icon">GQL</div>
+                    <div class="card-title">GraphQL - /graphql</div>
+                </div>
+                
+                <form id="graphqlForm">
+                    <div class="form-group">
+                        <label class="form-label" for="graphql_text">Texto a Analizar</label>
+                        <textarea id="graphql_text" class="form-textarea" rows="4" placeholder="Ingrese el texto del cual desea extraer información...">Tengo 10 unidades de Mouse óptico. El costo de compra es $5.00 y el precio de venta es $12.50.</textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="graphql_fields">Definición de Campos (JSON)</label>
+                        <textarea id="graphql_fields" class="form-textarea" rows="8">{
     "fields": [
         {"name": "nombre", "type": "string"},
         {"name": "cantidad", "type": "number"},
@@ -54,43 +471,156 @@
         {"name": "precio_venta", "type": "currency"}
     ]
 }</textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn" id="graphqlBtn">
+                        <span class="btn-text">Ejecutar Extracción GraphQL</span>
+                    </button>
+                </form>
                 
-                <button type="submit">Enviar Petición GraphQL</button>
-            </form>
+                <div class="result-section">
+                    <div class="result-container" id="graphqlResultContainer">
+                        <div class="result-header">
+                            <span><span class="status-indicator"></span>Resultado GraphQL</span>
+                            <button class="copy-btn" onclick="copyResult('graphql_result')">Copiar</button>
+                        </div>
+                        <div class="result-content">
+                            <pre class="result-pre" id="graphql_result">Esperando petición...</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Examples Section -->
+        <div class="examples-section">
+            <div class="examples-header">
+                <h3>📋 Ejemplos de Prueba</h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">Haz clic en cualquier ejemplo para cargarlo automáticamente</p>
+            </div>
             
-            <label>Resultado GraphQL:</label>
-            <pre id="graphql_result">{ /* Resultado aquí */ }</pre>
+            <div class="examples-grid">
+                <div class="example-card" onclick="loadExample('inventory')">
+                    <div class="example-title">Inventario de Producto</div>
+                    <div class="example-text">Producto: Teclado mecánico RGB. Stock disponible: 25 piezas. Precio unitario: $89.99</div>
+                    <div class="example-fields">Campos: nombre, stock, precio</div>
+                </div>
+                
+                <div class="example-card" onclick="loadExample('invoice')">
+                    <div class="example-title">Información de Factura</div>
+                    <div class="example-text">Factura #001234 por $1,250.00. Cliente: Tech Solutions SA. Fecha: 15/03/2024</div>
+                    <div class="example-fields">Campos: numero_factura, monto, cliente, fecha</div>
+                </div>
+                
+                <div class="example-card" onclick="loadExample('contact')">
+                    <div class="example-title">Datos de Contacto</div>
+                    <div class="example-text">Juan Pérez, email: juan.perez@email.com, teléfono: +1-555-0123, empresa: DevCorp Inc.</div>
+                    <div class="example-fields">Campos: nombre, email, telefono, empresa</div>
+                </div>
+                
+                <div class="example-card" onclick="loadExample('transaction')">
+                    <div class="example-title">Transacción Financiera</div>
+                    <div class="example-text">Transferencia de $5,000.00 USD desde cuenta 12345 hacia cuenta 67890 el 20/03/2024</div>
+                    <div class="example-fields">Campos: monto, moneda, cuenta_origen, cuenta_destino, fecha</div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // ... (Tu script JavaScript se mantiene igual, ya que la lógica fetch es correcta)
-        const displayResult = (preElement, result) => {
-            if (result && result.error) {
-                preElement.className = 'error';
-                preElement.textContent = `ERROR: ${result.error}`;
-            } else {
-                preElement.className = '';
-                preElement.textContent = JSON.stringify(result, null, 2);
+        // Estado global
+        let apiBaseUrl = 'http://localhost:5000';
+        
+        // Ejemplos predefinidos
+        const examples = {
+            inventory: {
+                text: "Producto: Teclado mecánico RGB marca Corsair. Stock disponible: 25 piezas. Precio unitario: $89.99. Código: KB-001",
+                fields: "nombre, marca, stock, precio, codigo"
+            },
+            invoice: {
+                text: "Factura #001234 por un monto total de $1,250.00. Cliente: Tech Solutions SA de R.L. Fecha de emisión: 15/03/2024. Método de pago: Transferencia bancaria",
+                fields: "numero_factura, monto, cliente, fecha, metodo_pago"
+            },
+            contact: {
+                text: "Juan Pérez Martínez, ingeniero de software. Email de contacto: juan.perez@email.com, teléfono móvil: +1-555-0123, empresa: DevCorp Inc. Ubicación: San Salvador",
+                fields: "nombre, profesion, email, telefono, empresa, ubicacion"
+            },
+            transaction: {
+                text: "Transferencia bancaria por $5,000.00 USD realizada desde la cuenta número 12345-6789 hacia la cuenta 67890-1234 el día 20/03/2024 a las 14:30",
+                fields: "monto, moneda, cuenta_origen, cuenta_destino, fecha, hora"
             }
         };
 
+        // Utilidades
+        const showToast = (message, type = 'success') => {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 3000);
+        };
+
+        const updateResultContainer = (containerId, status, result) => {
+            const container = document.getElementById(containerId);
+            const indicator = container.querySelector('.status-indicator');
+            const pre = container.querySelector('.result-pre');
+            
+            container.className = `result-container ${status}`;
+            indicator.className = `status-indicator ${status}`;
+            
+            if (status === 'loading') {
+                pre.textContent = 'Procesando petición...';
+            } else if (status === 'error') {
+                pre.textContent = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+            } else {
+                pre.textContent = JSON.stringify(result, null, 2);
+            }
+        };
+
+        const setButtonLoading = (buttonId, loading = true) => {
+            const button = document.getElementById(buttonId);
+            const text = button.querySelector('.btn-text');
+            
+            if (loading) {
+                button.classList.add('loading');
+                button.disabled = true;
+                text.style.opacity = '0';
+            } else {
+                button.classList.remove('loading');
+                button.disabled = false;
+                text.style.opacity = '1';
+            }
+        };
+
+        // API Functions
         const extractInformation = async (text, fields) => {
             try {
-                const response = await fetch('http://localhost:5000/extract', {
+                const response = await fetch(`${apiBaseUrl}/extract`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ text: text, fields: fields })
                 });
+                
                 const result = await response.json();
                 
                 if (response.ok && result.success) {
-                    return result.data;
+                    return { success: true, data: result.data };
                 } else {
-                    return { error: result.error || `Error ${response.status}: ${response.statusText}` };
+                    return { 
+                        success: false, 
+                        error: result.error || `Error ${response.status}: ${response.statusText}` 
+                    };
                 }
             } catch (error) {
-                return { error: `Error de red: Failed to fetch (Verifica que la API en http://localhost:5000 esté corriendo)` };
+                return { 
+                    success: false, 
+                    error: `Error de conexión: ${error.message}. Verifica que la API esté corriendo en ${apiBaseUrl}` 
+                };
             }
         };
 
@@ -108,69 +638,178 @@
             `;
             
             try {
-                const response = await fetch('http://localhost:5000/graphql', {
+                const response = await fetch(`${apiBaseUrl}/graphql`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query: query, variables: { text: text, fields: fields } })
+                    body: JSON.stringify({ 
+                        query: query, 
+                        variables: { text: text, fields: fields } 
+                    })
                 });
+                
                 const result = await response.json();
                 
                 if (result.errors) {
-                    return { error: `Error en la mutación: ${result.errors[0].message}` };
+                    return { 
+                        success: false, 
+                        error: `Error GraphQL: ${result.errors[0].message}` 
+                    };
                 }
                 
                 const extractionData = result.data.extractInformation;
 
                 if (extractionData.success) {
-                    return JSON.parse(extractionData.data); 
+                    return { 
+                        success: true, 
+                        data: JSON.parse(extractionData.data),
+                        meta: {
+                            extractedFields: extractionData.extractedFields,
+                            totalFields: extractionData.totalFields
+                        }
+                    };
                 } else {
-                    return { error: extractionData.error || 'Error desconocido en GraphQL' };
+                    return { 
+                        success: false, 
+                        error: extractionData.error || 'Error desconocido en GraphQL' 
+                    };
                 }
             } catch (error) {
-                return { error: `Error de red o parseo: Failed to fetch (Verifica que la API en http://localhost:5000 esté corriendo)` };
+                return { 
+                    success: false, 
+                    error: `Error de conexión: ${error.message}. Verifica que la API esté corriendo en ${apiBaseUrl}` 
+                };
             }
         };
 
+        // Event Handlers
+        const loadExample = (exampleKey) => {
+            const example = examples[exampleKey];
+            if (!example) return;
+            
+            // Cargar en REST
+            document.getElementById('rest_text').value = example.text;
+            document.getElementById('rest_fields').value = example.fields;
+            
+            // Cargar en GraphQL
+            document.getElementById('graphql_text').value = example.text;
+            
+            // Crear estructura JSON para GraphQL
+            const fieldsArray = example.fields.split(',').map(field => ({
+                name: field.trim(),
+                type: "string"
+            }));
+            
+            document.getElementById('graphql_fields').value = JSON.stringify({
+                fields: fieldsArray
+            }, null, 4);
+            
+            showToast(`Ejemplo "${exampleKey}" cargado correctamente`);
+        };
 
+        const copyResult = async (resultId) => {
+            try {
+                const text = document.getElementById(resultId).textContent;
+                await navigator.clipboard.writeText(text);
+                showToast('Resultado copiado al portapapeles');
+            } catch (error) {
+                showToast('Error al copiar resultado', 'error');
+            }
+        };
+
+        // Form Handlers
         document.getElementById('restForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
             const text = document.getElementById('rest_text').value.trim();
             const fieldsString = document.getElementById('rest_fields').value;
             const fields = fieldsString.split(',').map(field => field.trim()).filter(field => field.length > 0);
-            const resultPre = document.getElementById('rest_result');
 
-            resultPre.className = '';
-            resultPre.textContent = 'Enviando petición...';
+            if (!text) {
+                showToast('Por favor ingrese el texto a analizar', 'error');
+                return;
+            }
+
+            if (fields.length === 0) {
+                showToast('Por favor ingrese al menos un campo', 'error');
+                return;
+            }
+
+            setButtonLoading('restBtn', true);
+            updateResultContainer('restResultContainer', 'loading');
 
             const result = await extractInformation(text, fields);
-            displayResult(resultPre, result);
+            
+            setButtonLoading('restBtn', false);
+            
+            if (result.success) {
+                updateResultContainer('restResultContainer', 'success', result.data);
+                showToast('Extracción REST completada exitosamente');
+            } else {
+                updateResultContainer('restResultContainer', 'error', result.error);
+                showToast('Error en la extracción REST', 'error');
+            }
         });
 
         document.getElementById('graphqlForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
             const text = document.getElementById('graphql_text').value.trim();
             const fieldsJsonString = document.getElementById('graphql_fields').value;
-            const resultPre = document.getElementById('graphql_result');
             let fields = [];
 
-            resultPre.className = '';
-            resultPre.textContent = 'Enviando petición...';
+            if (!text) {
+                showToast('Por favor ingrese el texto a analizar', 'error');
+                return;
+            }
 
             try {
                 const parsedJson = JSON.parse(fieldsJsonString);
                 fields = parsedJson.fields;
+                
+                if (!Array.isArray(fields) || fields.length === 0) {
+                    throw new Error('El array de campos está vacío o no es válido');
+                }
             } catch (error) {
-                displayResult(resultPre, { error: `ERROR de JSON en Campos: Asegúrate de que el JSON de los campos sea válido. ${error.message}` });
+                showToast(`Error en el JSON de campos: ${error.message}`, 'error');
+                updateResultContainer('graphqlResultContainer', 'error', `Error de JSON: ${error.message}`);
                 return;
             }
 
+            setButtonLoading('graphqlBtn', true);
+            updateResultContainer('graphqlResultContainer', 'loading');
+
             const result = await extractWithGraphQL(text, fields);
-            displayResult(resultPre, result);
+            
+            setButtonLoading('graphqlBtn', false);
+            
+            if (result.success) {
+                updateResultContainer('graphqlResultContainer', 'success', {
+                    data: result.data,
+                    metadata: result.meta
+                });
+                showToast('Extracción GraphQL completada exitosamente');
+            } else {
+                updateResultContainer('graphqlResultContainer', 'error', result.error);
+                showToast('Error en la extracción GraphQL', 'error');
+            }
         });
 
-        window.onload = () => {
-             // Valores iniciales cargados en HTML
+        // Configurar URL de la API si está disponible
+        const updateApiUrl = () => {
+            const urlInput = prompt('Ingrese la URL base de la API:', apiBaseUrl);
+            if (urlInput && urlInput.trim()) {
+                apiBaseUrl = urlInput.trim().replace(/\/$/, '');
+                showToast(`URL de API actualizada: ${apiBaseUrl}`);
+            }
         };
+
+        // Agregar evento para cambiar URL (Ctrl+U)
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'u') {
+                e.preventDefault();
+                updateApiUrl();
+            }
+        });
     </script>
     
 </body>
