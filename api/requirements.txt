@@ -3,3 +3,5 @@ Flask-GraphQL==2.0.1
 graphene==2.1.9
 python-dateutil==2.8.2
 Flask-CORS==3.0.10
+openai
+python-dotenv

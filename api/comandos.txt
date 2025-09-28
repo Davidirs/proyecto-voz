@@ -5,7 +5,9 @@ comandos.txt
 
 # Instalación con pip
 pip install -r requirements.txt
+pip3 install -r requirements.txt
 
 # Ejecución directa
 python app.py
+python3 app.py
 
