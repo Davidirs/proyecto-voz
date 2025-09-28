@@ -91,6 +91,16 @@ def rest_extract():
         app.logger.error(f"Error en el procesamiento REST: {e}") 
         return jsonify({"success": False, "error": "Error interno de procesamiento en el servidor."}), 500
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    """
+    Endpoint de health check para verificar que la API está activa.
+    """
+    return {
+        "status": "ok",
+        "message": "API funcionando correctamente"
+    }, 200
+
 # ------------------------------------------------------------------------------
 # 3. CONFIGURACIÓN DE GRAPHQL (CORREGIDA)
 # ------------------------------------------------------------------------------
